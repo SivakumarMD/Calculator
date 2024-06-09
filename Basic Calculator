@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basic Calculator</title>
+    <style>
+        /* Body styling for centering calculator and setting background color */
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #2c3e50; /* Professional dark background color */
+            font-family: Arial, sans-serif;
+        }
+
+        /* Calculator container styling */
+        .calculator {
+            display: grid;
+            grid-template-columns: repeat(5, 80px);
+            grid-template-rows: minmax(120px, auto) repeat(5, 80px);
+            gap: 10px;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            background-color: #ecf0f1; /* Light background color for the calculator */
+        }
+
+        /* Calculator display styling */
+        .calculator-display {
+            grid-column: span 5;
+            background-color: black; /* Dark color for display background */
+            color: #ecf0f1; /* Light color for display text */
+            font-size: 2.5rem;
+            text-align: right;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+            overflow-x: auto; /* Allow horizontal scrolling */
+            white-space: nowrap; /* Prevent text from wrapping */
+        }
+
+        /* Styling for all buttons */
+        .button {
+            background-color: #bdc3c7; /* Light grey button background color */
+            border: none;
+            border-radius: 10px;
+            color: #2c3e50; /* Dark text color */
+            font-size: 1.5rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px #95a5a6; /* Shadow for buttons */
+        }
+
+        /* Button active state styling */
+        .button:active {
+            box-shadow: 0 2px #95a5a6;
+            transform: translateY(2px);
+        }
+
+        /* Styling for operator buttons */
+        .operator {
+            background-color: #e74c3c; /* Red background color for operators */
+            color: #ecf0f1; /* Light text color */
+        }
+
+        /* Styling for clear buttons within the same grid cell */
+        .clear-container {
+            display: flex;
+            flex-direction:column;
+            gap: 5px;
+            grid-column: span 1; /* Ensure they stay within the same grid cell */
+        }
+
+        .clear-last-digit, .clear-all {
+            flex: 1; /* Ensure both buttons take up equal space */
+            background-color: #e67e22; /* Orange background color for clear buttons */
+        }
+
+        /* Styling for equal button */
+        .equal {
+            grid-column: repeat(4,80px);
+            background-color: #1abc9c; /* Green background color for equal button */
+        }
+
+        /* Styling for memory function buttons */
+        .memory-clear, .memory-recall, .memory-add, .memory-subtract {
+            background-color: #3498db; /* Blue background color for memory buttons */
+            color: #ecf0f1; /* Light text color */
+        }
+
+        /* Styling for number buttons */
+        .number {
+            background-color: #ecf0f1; /* Light background color for number buttons */
+            color: #2c3e50; /* Dark text color */
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator">
+        <!-- Display for the calculator -->
+        <div id="display" class="calculator-display">0</div>
+
+        <!-- Memory function buttons -->
+        <button class="button memory-clear" onclick="memoryClear()">MC</button>
+        <button class="button memory-recall" onclick="memoryRecall()">MR</button>
+        <button class="button memory-add" onclick="memoryAdd()">M+</button>
+        <button class="button memory-subtract" onclick="memorySubtract()">M-</button>
+
+        <!-- Clear buttons within the same space -->
+        <div class="clear-container">
+            <button class="button operator clear-last-digit" onclick="clearLastDigit()">CE</button>
+            <button class="button operator clear-all" onclick="clearAll()">AC</button>
+        </div>
+
+        <!-- Number and operator buttons -->
+        <button class="button number" onclick="appendNumber('7')">7</button>
+        <button class="button number" onclick="appendNumber('8')">8</button>
+        <button class="button number" onclick="appendNumber('9')">9</button>
+        <button class="button operator" onclick="chooseOperator('/')">÷</button>
+        <button class="button operator" onclick="chooseOperator('√')">√</button>
+
+        <button class="button number" onclick="appendNumber('4')">4</button>
+        <button class="button number" onclick="appendNumber('5')">5</button>
+        <button class="button number" onclick="appendNumber('6')">6</button>
+        <button class="button operator" onclick="chooseOperator('*')">x</button>
+        <button class="button operator" onclick="chooseOperator('%')">%</button>
+
+        <button class="button number" onclick="appendNumber('1')">1</button>
+        <button class="button number" onclick="appendNumber('2')">2</button>
+        <button class="button number" onclick="appendNumber('3')">3</button>
+        <button class="button operator" onclick="chooseOperator('-')">-</button>
+        <button class="button operator" onclick="chooseOperator('1/x')">1/x</button>
+
+        <button class="button number" onclick="appendNumber('0')">0</button>
+        <button class="button number" onclick="appendNumber('00')">00</button>
+        <button class="button operator" onclick="appendDecimal()">.</button>
+        <button class="button operator" onclick="chooseOperator('+')">+</button>
+        <button class="button operator equal" onclick="compute()">=</button>
+    </div>
+
+    <script>
+        let currentInput = ''; // Stores the current input value
+        let operator = null; // Stores the chosen operator
+        let previousInput = ''; // Stores the previous input value
+        let shouldResetDisplay = false; // Flag to reset the display on next input
+        let memory = 0; // Memory storage for M+, M-, MR, MC functions
+
+        const displayElement = document.getElementById('display');
+
+        // Choose an operator and save the current input as previous input
+        function chooseOperator(op) {
+            if (currentInput === '' && op !== '√' && op !== '%' && op !== '1/x') {
+                // Allow negative sign as the beginning of input
+                if (op === '-') {
+                    currentInput = '-';
+                    updateDisplay();
+                }
+                return;
+            }
+            if (previousInput !== '' && currentInput !== '') {
+                compute();
+            }
+            operator = op;
+            previousInput = currentInput;
+            currentInput = '';
+            shouldResetDisplay = false;
+            updateDisplay();
+        }
+
+        // Append a number to the current input
+        function appendNumber(number) {
+            if (shouldResetDisplay) {
+                currentInput = '';
+                shouldResetDisplay = false;
+            }
+            if (currentInput === '-' && number === '0') {
+                currentInput += number;
+            } else {
+                currentInput += number;
+            }
+            updateDisplay();
+            scrollDisplayRight();
+        }
+
+        // Update the calculator display
+        function updateDisplay() {
+            if (operator != null && previousInput != '') {
+                displayElement.textContent = previousInput + ' ' + operator + ' ' + currentInput;
+            } else if (operator === '√' || operator === '1/x') {
+                displayElement.textContent = operator + (previousInput || currentInput);
+            } else if (currentInput.startsWith('-')) {
+                displayElement.textContent = currentInput;
+            } else {
+                displayElement.textContent = currentInput || '0';
+            }
+        }
+
+        // Scroll the display to the right
+        function scrollDisplayRight() {
+            displayElement.scrollLeft = displayElement.scrollWidth;
+        }
+
+        // Clear the last digit of the current input
+        function clearLastDigit() {
+            if (currentInput.length > 0) {
+                currentInput = currentInput.slice(0, -1);
+                updateDisplay();
+            }
+        }
+         // Clear all inputs and reset the display
+        function clearAll() {
+            currentInput = '';
+            previousInput = '';
+            operator = null;
+            shouldResetDisplay = false;
+            updateDisplay();
+        }
+
+// Append a decimal point to the current input
+function appendDecimal() {
+    if (shouldResetDisplay) {
+        currentInput = '';
+        shouldResetDisplay = false;
+    }
+    if (!currentInput.includes('.')) {
+        currentInput += '.';
+        updateDisplay();
+    }
+}
+
+
+// Compute the result of the operation
+function compute() {
+    if (operator === '√' || operator === '%' || operator === '1/x') {
+        performSingleInputOperation();
+        return;
+    }
+
+    if (currentInput === '' || previousInput === '' || operator === null) return;
+
+    const prev = parseFloat(previousInput);
+    const current = parseFloat(currentInput);
+    let result;
+
+    switch (operator) {
+        case '+':
+            result = prev + current;
+            break;
+        case '-':
+            result = prev - current;
+            break;
+        case '*':
+            result = prev * current;
+            break;
+        case '/':
+            if (current === 0) {
+                displayElement.textContent = 'Error: Division by 0';
+                clearDisplayAfterError();
+                return;
+            }
+            result = prev / current;
+            break;
+        default:
+            return;
+    }
+
+    currentInput = result.toString();
+    operator = null;
+    previousInput = '';
+    shouldResetDisplay = true;
+    updateDisplay();
+}
+
+// Perform operations that only require one input (square root, percentage, reciprocal)
+function performSingleInputOperation() {
+    const input = parseFloat(previousInput || currentInput);
+    let result;
+
+    switch (operator) {
+        case '√':
+            if (input < 0) {
+                displayElement.textContent = 'Error: Negative √';
+                clearDisplayAfterError();
+                return;
+            }
+            result = Math.sqrt(input);
+            currentInput = '√' + input.toString();
+            break;
+        case '%':
+            result = input / 100;
+            currentInput = input.toString() + '%';
+            break;
+        case '1/x':
+            if (input === 0) {
+                displayElement.textContent = 'Error: Division by 0';
+                clearDisplayAfterError();
+                return;
+            }
+            result = 1 / input;
+            currentInput = '1/' + input.toString();
+            break;
+        default:
+            return;
+    }
+
+    currentInput = result.toString();
+    operator = null;
+    previousInput = '';
+    shouldResetDisplay = true;
+    updateDisplay();
+}
+
+
+// Clear the display after an error
+function clearDisplayAfterError() {
+    setTimeout(() => {
+        clearDisplay();
+        displayElement.textContent = '0';
+    }, 2000);
+}
+
+// Memory functions
+function memoryAdd() {
+    memory += parseFloat(currentInput);
+    shouldResetDisplay = true;
+}
+
+function memorySubtract() {
+    memory -= parseFloat(currentInput);
+    shouldResetDisplay = true;
+}
+
+function memoryRecall() {
+    currentInput = memory.toString();
+    updateDisplay();
+}
+
+function memoryClear() {
+    memory = 0;
+}
+
+  </script>
+</body>
+</html>
+
